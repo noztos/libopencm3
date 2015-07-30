@@ -31,13 +31,37 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+# usage:
+# simply do
+# > make
+# from terminal, then be generated ../bootupCallGraph.png
 
-# in stm32/f4/libopencm3_stm32f4.ld
-stm32/f4/libopencm3_stm32f4.ld:ENTRY(reset_handler) => cm3/vector.c:reset_handler()
+digraph bootup {
+	graph [label = "libopencm3 boot-up call graph		BASEDIR is \"opencm3/lib\"", fontsize = 18, compound = true];
 
-# in cm3/vector.c:reset_handler() 
-cm3/vector.c:reset_handler() => pre_main()
-cm3/vector.c:reset_handler() => (*__preinit_array_start)() .. (*__preinit_array_end)()
-cm3/vector.c:reset_handler() => (*__init_array_start)() .. (*__init_array_end)()
-cm3/vector.c:reset_handler() => main()
-cm3/vector.c:reset_handler() => (*__fini_array_start)() .. (*__fini_array_end)()
+	ENTRY [label = "stm32/f4/libopencm3_stm32f4.ld \n ENTRY(reset_handler)"];
+	pre_main [label = "dispatch/vector_chipset.c \n pre_main()", style = dashed];
+	main [label = "Your Application of main()", style = filled, fillcolor = "#99cc99"];
+
+	ENTRY -> pre_main [lhead = cluster_reset_handler]
+
+	subgraph cluster_reset_handler {
+		label = "cm3/vector.c : reset_handler()";
+		shape = circle;
+
+		pre_main
+			-> " (*__preinit_array_start)() \n.\n.\n.\n (*__preinit_array_end)() "
+			-> " (*__init_array_start)() \n.\n.\n.\n (*__init_array_end)() "
+			-> main
+			-> " (*__fini_array_start)() \n.\n.\n.\n (*__fini_array_end)() "
+	}
+
+	subgraph cluster_pre_main {
+		label = "included by dispatch/vector_chipset.c : pre_main()";
+
+		pre_main -> "../stm32/f3/vector_chipset.c" [label = "#define STM32F3", fontname = "Helvetica", dir = none, style = dashed];
+		pre_main -> "../stm32/f4/vector_chipset.c" [label = "#define STM32F4", fontname = "Helvetica", dir = none, style = dashed];
+		pre_main -> "../lpc43xx/m4/vector_chipset.c" [label = "#define LPC43XX_M4", fontname = "Helvetica", dir = none, style = dashed];
+		pre_main -> "../vf6xx/vector_chipset.c" [label = "#define VF6XX", fontname = "Helvetica", dir = none, style = dashed];
+	}
+}
