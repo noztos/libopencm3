@@ -39,12 +39,17 @@
 digraph bootup {
 	graph [label = "libopencm3 boot-up call graph		BASEDIR is \"opencm3/lib\"", fontsize = 18, compound = true];
 
-	ENTRY [label = "ENTRY(reset_handler)"];
-	pre_main [label = "dispatch/vector_chipset.c \n pre_main()", style = dashed];
-	main [label = "Your Application of main()", style = filled, fillcolor = "#99cc99"];
-	preinit_array [label = " (*__preinit_array_start)() \n.\n.\n.\n (*__preinit_array_end)() "];
-	init_array [label = " (*__init_array_start)() \n.\n.\n.\n (*__init_array_end)() "];
-	fini_array [label = " (*__fini_array_start)() \n.\n.\n.\n (*__fini_array_end)() "];
+	ENTRY [label = "ENTRY(reset_handler)", group = 1];
+	pre_main [label = "dispatch/vector_chipset.c \n pre_main()", style = dashed, group = 1];
+	pre_main_stm32f3 [label = "../stm32/f3/vector_chipset.c \n pre_main()", shape = box];
+	pre_main_stm32f4 [label = "../stm32/f4/vector_chipset.c \n pre_main()", shape = box];
+	pre_main_lpc43xxm4 [label = "../lpc43xx/m4/vector_chipset.c \n pre_main()", shape = box];
+	pre_main_vf6xx [label = "../vf6xx/vector_chipset.c \n pre_main()", shape = box];
+
+	main [label = "Your Application of main()", style = filled, fillcolor = "#99cc99", group = 1];
+	preinit_array [label = " (*__preinit_array_start)() \n.\n.\n.\n (*__preinit_array_end)() ", group = 1];
+	init_array [label = " (*__init_array_start)() \n.\n.\n.\n (*__init_array_end)() ", group = 1];
+	fini_array [label = " (*__fini_array_start)() \n.\n.\n.\n (*__fini_array_end)() ", group = 1];
 
 	subgraph cluster_reset_handler {
 		label = " cm3/vector.c \n reset_handler() ";
@@ -57,21 +62,23 @@ digraph bootup {
 			-> main
 			-> fini_array
 
-			subgraph cluster_pre_main {
-				label = "included by \n dispatch/vector_chipset.c : pre_main()";
+		subgraph cluster_pre_main {
+			label = "included by \n dispatch/vector_chipset.c : pre_main()";
+			graph [ranksep = 3.0];
 
-				pre_main ->
-				{
-					"../stm32/f3/vector_chipset.c" [label = "#define STM32F3", fontname = "Helvetica", dir = none, style = dashed];
-					"../stm32/f4/vector_chipset.c" [label = "#define STM32F4", fontname = "Helvetica", dir = none, style = dashed];
-					"../lpc43xx/m4/vector_chipset.c" [label = "#define LPC43XX_M4", fontname = "Helvetica", dir = none, style = dashed];
-					"../vf6xx/vector_chipset.c" [label = "#define VF6XX", fontname = "Helvetica", dir = none, style = dashed];
-				}
-			}
+			pre_main -> pre_main_stm32f3	[label = "#define STM32F3", fontname = "Helvetica", dir = none, style = dashed];
+			pre_main -> pre_main_stm32f4	[label = "#define STM32F4", fontname = "Helvetica", dir = none, style = dashed];
+			pre_main -> pre_main_lpc43xxm4	[label = "#define LPC43XX_M4", fontname = "Helvetica", dir = none, style = dashed];
+			pre_main -> pre_main_vf6xx	[label = "#define VF6XX", fontname = "Helvetica", dir = none, style = dashed];
+		}
+
 	}
+
+	{rank = same; pre_main_stm32f3; pre_main_stm32f4; pre_main_lpc43xxm4; pre_main_vf6xx}
 
 	subgraph cluster_libopencm3_ld {
 		label = "[<vendorname>/]<chipname>/libopencm3_<config>.ld";
-			ENTRY -> pre_main [lhead = cluster_reset_handler]
+		ENTRY -> pre_main [lhead = cluster_reset_handler]
 	}
+
 }
